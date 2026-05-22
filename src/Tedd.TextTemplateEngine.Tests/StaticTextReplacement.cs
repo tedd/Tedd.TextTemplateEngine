@@ -39,9 +39,14 @@ namespace Tedd.TextTemplateEngineTests
                     {
                         var rk = _random.NextString("abcdefghijklmnopqrstuvwxyz0123456789", _random.Next(1, 20));
                         var rv = _random.NextString("abcdefghijklmnopqrstuvwxyz0123456789", _random.Next(0, 20));
-                        lookup.Add(rk, rv);
+                        if (!lookup.TryGetValue(rk, out var existingRv))
+                        {
+                            lookup[rk] = rv;
+                            existingRv = rv;
+                        }
+
                         templateStringBuilder.Append($"[{rk}]");
-                        resultStringBuilder.Append(rv);
+                        resultStringBuilder.Append(existingRv);
                     }
 
                     var rs = _random.NextString("abcdefghijklmnopqrstuvwxyz0123456789", _random.Next(1, 20));
