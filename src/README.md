@@ -6,7 +6,7 @@ The `TextTemplateEngine` operates on a linear, high-performance `ReadOnlySpan<ch
 
 The replacement logic utilizes a dual-pointer system (managing `appendPos` and `startPos`) to traverse the template.
 - When an escape character is encountered, the literal segment up to that character is appended to an internal `StringBuilder`.
-- When a `StartChar` and subsequent `EndChar` are located, the substring is extracted as a keyword. The engine performs an O(1) dictionary lookup against the provided `Dictionary<string, string>`.
+- When a `StartChar` and subsequent `EndChar` are located, the substring is extracted as a keyword. The engine then converts that candidate keyword to a `string` and performs a dictionary-based lookup against the provided `Dictionary<string, string>`.
 - Valid keyword matches dynamically append their corresponding dictionary value. If the keyword is absent, the parsing state resets without modifying the original template string, ensuring deterministic execution.
 
 ## Contemporary Implementation Example
