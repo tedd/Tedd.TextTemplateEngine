@@ -27,7 +27,7 @@ class Program
             { "Hostname", "Nexus-Core-01" }
         };
 
-        // Execution of string interpolation via ReadOnlySpan slicing
+        // Execute template token replacement via ReadOnlySpan slicing
         string renderedOutput = TextTemplateEngine.Replace(
             templateString: template,
             lookup: lookupContext,
