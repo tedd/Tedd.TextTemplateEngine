@@ -68,5 +68,47 @@ namespace Tedd.TextTemplateEngineTests
             var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void Constructor_And_Property_Should_Work()
+        {
+            var engine = new TextTemplateEngine('[', ']', '\\');
+            Assert.Equal('[', engine.StartChar);
+            Assert.Equal(']', engine.EndChar);
+            Assert.Equal('\\', engine.EscapeChar);
+
+            engine.MatchType = TemplateMatchType.Regex;
+            Assert.Equal(TemplateMatchType.Regex, engine.MatchType);
+        }
+
+        [Theory]
+        [InlineData("hello [world]", "world", "earth", "hello earth")] // no escape char logic means it works as plain replacement, matches [world]
+        [InlineData("hello \\[world]", "world", "earth", "hello \\earth")] // '\' is a regular char, matches [world]
+        public void NoEscapeCharacter(string template, string key, string value, string expected)
+        {
+            var lookup = new Dictionary<string, string> { { key, value } };
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', (char)0);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("hello []", "hello []")]
+        [InlineData("hello [ ]", "hello [ ]")]
+        public void EmptyKeyword(string template, string expected)
+        {
+            var lookup = new Dictionary<string, string> { { "key", "value" } };
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("abc[k\\ey]ghi", "key", "def", "abc[key]ghi")] // Escaped char inside keyword means startPos resets, making it normal text, except `\e` becomes `e` because of escaping. Wait, escaping inside a keyword aborts the keyword. So `[k\ey]` becomes `[key]`.
+        [InlineData("abc[\\]ghi", "]ghi", "def", "abc[]ghi")] // Escaped end char `\]` becomes `]`. The keyword is aborted, so `[\\]` becomes `[]`.
+        public void EscapedCharacterInsideKeyword(string template, string key, string value, string expected)
+        {
+            var lookup = new Dictionary<string, string> { { key, value } };
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
+            Assert.Equal(expected, result);
+        }
     }
 }

@@ -48,7 +48,7 @@ namespace Tedd
                     // If we just encountered an escape character, we append the literal text up to the escape character
                     if (sb == null)
                         sb = new StringBuilder();
-                    
+
 #if NETSTANDARD2_0
                     sb.Append(s.Slice(appendPos, i - appendPos - 1).ToString());
 #else
