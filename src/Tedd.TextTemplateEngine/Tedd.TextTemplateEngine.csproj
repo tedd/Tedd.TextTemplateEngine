@@ -13,10 +13,12 @@
     <Description>A high-performance text template engine.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/tedd/Tedd.TextTemplateEngine</RepositoryUrl>
+    <PackageTags>template;text;replace;span;fast</PackageTags>
+    <PackageProjectUrl>https://github.com/tedd/Tedd.TextTemplateEngine</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
 
   <ItemGroup>
