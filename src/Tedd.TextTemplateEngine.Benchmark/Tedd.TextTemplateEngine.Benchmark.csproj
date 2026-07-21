@@ -5,4 +5,13 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tedd.TextTemplateEngine\Tedd.TextTemplateEngine.csproj" />
+    <ProjectReference Include="..\Tedd.TextTemplateEngine.Archive\Tedd.TextTemplateEngine.Archive.csproj" />
+  </ItemGroup>
+
 </Project>
