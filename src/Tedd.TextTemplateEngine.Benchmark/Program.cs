@@ -1,12 +1,13 @@
-﻿using System;
+using System;
+using BenchmarkDotNet.Running;
 
-namespace Tedd.TextTemplateEngine.Benchmark
+namespace Tedd.Benchmark
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var summary = BenchmarkRunner.Run<TemplateEngineBenchmark>();
         }
     }
 }
