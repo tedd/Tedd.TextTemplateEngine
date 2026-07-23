@@ -16,30 +16,24 @@ using System;
 using System.Collections.Generic;
 using Tedd;
 
-class Program
+string template = "System metrics for [Hostname] indicate operational status. Use \\[Escape\\] to emit raw delimiters.";
+
+Dictionary<string, string> lookupContext = new()
 {
-    static void Main()
-    {
-        string template = "System metrics for [Hostname] indicate operational status. Use \\[Escape\\] to emit raw delimiters.";
+    ["Hostname"] = "Nexus-Core-01"
+};
 
-        Dictionary<string, string> lookupContext = new()
-        {
-            { "Hostname", "Nexus-Core-01" }
-        };
+// Execute template token replacement via ReadOnlySpan slicing
+string renderedOutput = TextTemplateEngine.Replace(
+    templateString: template,
+    lookup: lookupContext,
+    startChar: '[',
+    endChar: ']',
+    escapeChar: '\\'
+);
 
-        // Execute template token replacement via ReadOnlySpan slicing
-        string renderedOutput = TextTemplateEngine.Replace(
-            templateString: template,
-            lookup: lookupContext,
-            startChar: '[',
-            endChar: ']',
-            escapeChar: '\\'
-        );
-
-        Console.WriteLine(renderedOutput);
-        // Output: System metrics for Nexus-Core-01 indicate operational status. Use [Escape] to emit raw delimiters.
-    }
-}
+Console.WriteLine(renderedOutput);
+// Output: System metrics for Nexus-Core-01 indicate operational status. Use [Escape] to emit raw delimiters.
 ```
 
 ## Future Roadmap (Hypotheses)
