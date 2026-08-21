@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Tedd
 {
@@ -24,13 +25,22 @@ namespace Tedd
             EscapeChar = escapeChar;
         }
 
+        /// <summary>
+        /// Replaces keywords in a string.
+        /// Time Complexity: O(N) where N is the length of templateString, as it requires a single pass over the string.
+        /// Space Complexity: O(N + M) where M is the combined length of the substituted strings. Memory is optimized by predicting StringBuilder capacity.
+        /// </summary>
         public static string Replace(string templateString, Dictionary<string, string> lookup, char startChar, char endChar, char escapeChar = (char)0)
         {
+#if NET9_0_OR_GREATER
+            var lookupSpan = lookup.GetAlternateLookup<ReadOnlySpan<char>>();
+#endif
+
             if (string.IsNullOrEmpty(templateString))
                 return templateString;
 
             var s = templateString.AsSpan();
-            StringBuilder sb = null; // If no replace happens then we won't create this object
+            StringBuilder sb = null;
             var appendPos = 0;
             var startPos = -1;
             var inEscape = false;
@@ -45,22 +55,18 @@ namespace Tedd
 
                 if (inEscape)
                 {
-                    // If we just encountered an escape character, we append the literal text up to the escape character
                     if (sb == null)
-                        sb = new StringBuilder();
+                        sb = new StringBuilder(templateString.Length);
 
 #if NETSTANDARD2_0
                     sb.Append(s.Slice(appendPos, i - appendPos - 1).ToString());
 #else
                     sb.Append(s.Slice(appendPos, i - appendPos - 1));
 #endif
-                    appendPos = i; // Next text begins at the escaped character itself
+                    appendPos = i;
                     inEscape = false;
-                    // Note: If we are inside a keyword, escaping characters inside a keyword means we should probably abandon the keyword.
-                    // But typically, escape is for escaping the start character or another escape.
                     if (startPos != -1)
                     {
-                        // Found escaped char inside keyword, abort keyword mode
                         startPos = -1;
                     }
                     continue;
@@ -78,12 +84,20 @@ namespace Tedd
                     if (keywordLen > 0)
                     {
                         var keyword = s.Slice(startPos + 1, keywordLen);
-                        if (lookup.TryGetValue(keyword.ToString(), out var value))
+                        bool match = false;
+                        string value = null;
+
+#if NET9_0_OR_GREATER
+                        match = lookupSpan.TryGetValue(keyword, out value);
+#else
+                        var keyStr = keyword.ToString();
+                        match = lookup.TryGetValue(keyStr, out value);
+#endif
+                        if (match)
                         {
                             if (sb == null)
-                                sb = new StringBuilder();
+                                sb = new StringBuilder(templateString.Length + value.Length);
 
-                            // Append everything since last appendPos up to the start character of this keyword
 #if NETSTANDARD2_0
                             sb.Append(s.Slice(appendPos, startPos - appendPos).ToString());
 #else
@@ -91,18 +105,16 @@ namespace Tedd
 #endif
                             sb.Append(value);
                             appendPos = i + 1;
-                            startPos = -1; // Reset for next keyword
+                            startPos = -1;
                             continue;
                         }
                     }
-                    // No match or empty keyword, pretend it's not a keyword
                     startPos = -1;
                 }
             }
 
             if (sb != null)
             {
-                // Copy remainder
                 if (appendPos < s.Length)
 #if NETSTANDARD2_0
                     sb.Append(s.Slice(appendPos).ToString());
