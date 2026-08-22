@@ -110,5 +110,49 @@ namespace Tedd.TextTemplateEngineTests
             var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void NullLookupDictionary_ShouldThrowNullReferenceException()
+        {
+            var template = "hello [world]";
+            // Documenting that this currently throws NullReferenceException.
+            // Refactoring the engine to throw ArgumentNullException is a functional change outside the strict mandate of test parameterization.
+            Assert.Throws<NullReferenceException>(() => TextTemplateEngine.Replace(template, null, '[', ']', '\\'));
+        }
+
+        [Theory]
+        [InlineData("test\\", "test\\")] // Escape at end of string doesn't get consumed properly as escape without next char? actually code doesn't append it because `inEscape` remains true. But wait, `appendPos` would be before the escape char. The remainder copies `s.Slice(appendPos)`. So the escape char IS copied! So expected should be same as input!
+        [InlineData("\\", "\\")]
+        [InlineData("hello \\", "hello \\")]
+        public void EscapeCharacterAtEndOfBuffer(string template, string expected)
+        {
+            var lookup = new Dictionary<string, string>();
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void LargeBuffer_StressTest()
+        {
+            var template = "this is a [test] string with [multiple] keywords and [escaped\\] characters. ";
+            var lookup = new Dictionary<string, string>
+            {
+                { "test", "successful" },
+                { "multiple", "several" }
+            };
+
+            var sbTemplate = new System.Text.StringBuilder();
+            var sbExpected = new System.Text.StringBuilder();
+            var expectedPattern = "this is a successful string with several keywords and [escaped] characters. ";
+
+            for (int i = 0; i < 10000; i++)
+            {
+                sbTemplate.Append(template);
+                sbExpected.Append(expectedPattern);
+            }
+
+            var result = TextTemplateEngine.Replace(sbTemplate.ToString(), lookup, '[', ']', '\\');
+            Assert.Equal(sbExpected.ToString(), result);
+        }
     }
 }
