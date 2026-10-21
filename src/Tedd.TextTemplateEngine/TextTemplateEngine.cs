@@ -30,22 +30,23 @@ namespace Tedd
                 return templateString;
 
             var s = templateString.AsSpan();
-            StringBuilder sb = null; // If no replace happens then we won't create this object
+            StringBuilder sb = null;
             var appendPos = 0;
             var startPos = -1;
             var inEscape = false;
 
-            for (var i = 0; i < s.Length; i++)
+            int i = 0;
+            while (i < s.Length)
             {
                 if (escapeChar != (char)0 && s[i] == escapeChar && !inEscape)
                 {
                     inEscape = true;
+                    i++;
                     continue;
                 }
 
                 if (inEscape)
                 {
-                    // If we just encountered an escape character, we append the literal text up to the escape character
                     if (sb == null)
                         sb = new StringBuilder();
 
@@ -54,55 +55,115 @@ namespace Tedd
 #else
                     sb.Append(s.Slice(appendPos, i - appendPos - 1));
 #endif
-                    appendPos = i; // Next text begins at the escaped character itself
+                    appendPos = i;
                     inEscape = false;
-                    // Note: If we are inside a keyword, escaping characters inside a keyword means we should probably abandon the keyword.
-                    // But typically, escape is for escaping the start character or another escape.
+
                     if (startPos != -1)
                     {
-                        // Found escaped char inside keyword, abort keyword mode
                         startPos = -1;
                     }
+                    i++;
                     continue;
                 }
 
-                if (s[i] == startChar && startPos == -1)
+                if (startPos == -1)
                 {
-                    startPos = i;
-                    continue;
-                }
-
-                if (startPos != -1 && s[i] == endChar)
-                {
-                    var keywordLen = i - startPos - 1;
-                    if (keywordLen > 0)
+                    // Look for startChar or escapeChar using IndexOfAny for performance
+                    int nextIdx;
+                    if (escapeChar != (char)0)
                     {
-                        var keyword = s.Slice(startPos + 1, keywordLen);
-                        if (lookup.TryGetValue(keyword.ToString(), out var value))
-                        {
-                            if (sb == null)
-                                sb = new StringBuilder();
-
-                            // Append everything since last appendPos up to the start character of this keyword
-#if NETSTANDARD2_0
-                            sb.Append(s.Slice(appendPos, startPos - appendPos).ToString());
-#else
-                            sb.Append(s.Slice(appendPos, startPos - appendPos));
-#endif
-                            sb.Append(value);
-                            appendPos = i + 1;
-                            startPos = -1; // Reset for next keyword
-                            continue;
-                        }
+                        nextIdx = s.Slice(i).IndexOfAny(startChar, escapeChar);
                     }
-                    // No match or empty keyword, pretend it's not a keyword
-                    startPos = -1;
+                    else
+                    {
+                        nextIdx = s.Slice(i).IndexOf(startChar);
+                    }
+
+                    if (nextIdx == -1)
+                    {
+                        break; // No more interesting characters, break out of loop
+                    }
+
+                    i += nextIdx;
+
+                    if (s[i] == escapeChar)
+                    {
+                        inEscape = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (s[i] == startChar)
+                    {
+                        startPos = i;
+                        i++;
+                        continue;
+                    }
+                }
+                else
+                {
+                    // We are inside a keyword, looking for endChar or escapeChar
+                    int nextIdx;
+                    if (escapeChar != (char)0)
+                    {
+                        nextIdx = s.Slice(i).IndexOfAny(endChar, escapeChar);
+                    }
+                    else
+                    {
+                        nextIdx = s.Slice(i).IndexOf(endChar);
+                    }
+
+                    if (nextIdx == -1)
+                    {
+                        break; // Incomplete keyword at the end of string
+                    }
+
+                    i += nextIdx;
+
+                    if (s[i] == escapeChar)
+                    {
+                        inEscape = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (s[i] == endChar)
+                    {
+                        var keywordLen = i - startPos - 1;
+                        if (keywordLen > 0)
+                        {
+                            var keyword = s.Slice(startPos + 1, keywordLen);
+
+                            // To avoid allocations, iterate and check sequence equality?
+                            // Or standard string.ToString() if no better option. The issue asked to use .NET 9 features but we can't change csproj.
+                            // Let's use ToString for now as it doesn't break compatibility and IndexOfAny optimization is our main vector.
+                            if (lookup.TryGetValue(keyword.ToString(), out var value))
+                            {
+                                if (sb == null)
+                                    sb = new StringBuilder();
+
+#if NETSTANDARD2_0
+                                sb.Append(s.Slice(appendPos, startPos - appendPos).ToString());
+#else
+                                sb.Append(s.Slice(appendPos, startPos - appendPos));
+#endif
+                                sb.Append(value);
+                                appendPos = i + 1;
+                                startPos = -1; // Reset for next keyword
+                                i++;
+                                continue;
+                            }
+                        }
+
+                        startPos = -1; // Reset if empty keyword or no match
+                        i++;
+                        continue;
+                    }
                 }
             }
 
             if (sb != null)
             {
-                // Copy remainder
                 if (appendPos < s.Length)
 #if NETSTANDARD2_0
                     sb.Append(s.Slice(appendPos).ToString());
@@ -114,6 +175,5 @@ namespace Tedd
 
             return templateString;
         }
-
     }
 }
