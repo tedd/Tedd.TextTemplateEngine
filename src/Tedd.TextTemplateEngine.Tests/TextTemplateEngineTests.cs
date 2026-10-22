@@ -110,5 +110,54 @@ namespace Tedd.TextTemplateEngineTests
             var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
             Assert.Equal(expected, result);
         }
+
+        [Theory]
+        [InlineData("[")]
+        [InlineData("]")]
+        [InlineData("\\")]
+        [InlineData("key[")]
+        [InlineData("key\\")]
+        [InlineData("[key")]
+        [InlineData("[\\]")]
+        [InlineData("a[")]
+        [InlineData("a\\")]
+        [InlineData("\\[")]
+        [InlineData("\\]")]
+        [InlineData("[abc")]
+        public void EdgeCases_IncompletePatterns(string template)
+        {
+            // Testing out-of-bounds scenarios, unclosed tags, and trailing escapes
+            var lookup = new Dictionary<string, string> { { "key", "value" }, { "abc", "def" } };
+            var expected = template;
+
+            if (template == "\\[")
+            {
+                expected = "[";
+            }
+            else if (template == "\\]")
+            {
+                expected = "]";
+            }
+            else if (template == "[\\]")
+            {
+                expected = "[]";
+            }
+
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void EdgeCases_MaximumBufferDimensions()
+        {
+            // Test with a large string buffer to test max buffer dimensions and GC pressure
+            var largeText = new string('a', 1000000);
+            var template = largeText + "[key]" + largeText;
+            var expected = largeText + "value" + largeText;
+            var lookup = new Dictionary<string, string> { { "key", "value" } };
+
+            var result = TextTemplateEngine.Replace(template, lookup, '[', ']', '\\');
+            Assert.Equal(expected, result);
+        }
     }
 }
